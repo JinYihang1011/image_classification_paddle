@@ -16,3 +16,4 @@ outputs/streamlit_test.log
 # 训练好的模型权重（约 45MB，如需随仓库分发可删除下面两行）
 # outputs/*.pdparams
 # outputs/*.meta.json
+.zip

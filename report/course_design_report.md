@@ -14,7 +14,7 @@
 
 ## 摘要
 
-本项目基于百度飞桨（PaddlePaddle）深度学习框架，设计并实现了一套完整的 CIFAR-10 图像分类识别系统。系统使用 `paddle.nn` 原生算子搭建了适配 32×32 小分辨率输入的 ResNet18 残差网络，在 CIFAR-10 数据集（60000 张 32×32 彩色图，10 类物体）上完成了从数据自动下载与预处理、模型训练（数据增强、学习率衰减、早停、最佳模型保存）、多维度评估（准确率/精确率/召回率/F1/混淆矩阵）、鲁棒性测试（高斯噪声、旋转、裁剪、低分辨率等 5 种扰动场景）到 Streamlit 图形界面的全流程工程实现。项目采用多模块化结构（data / models / utils / tests / docs / report），模块间接口清晰、异常处理完善，并配套单元测试与三份文档（技术文档、用户说明书、本报告）。实测在 RTX 5060 GPU 上训练约 48 分钟（第 40 轮触发早停，最佳模型为第 30 轮、验证准确率 92.56%），测试集准确率 **91.75%**（宏平均 F1 0.9174，见 5.3 节实际运行结果），单张图片 GPU 推理延迟 3.23 ms（batch=128 时吞吐 4942 img/s），满足课程全部设计与验收要求。
+本项目基于百度飞桨（PaddlePaddle）深度学习框架，设计并实现了一套完整的 CIFAR-10 图像分类识别系统。系统使用 `paddle.nn` 原生算子搭建了适配 32×32 小分辨率输入的 ResNet18 残差网络，在 CIFAR-10 数据集（60000 张 32×32 彩色图，10 类物体）上完成了从数据自动下载与预处理、模型训练（数据增强、学习率衰减、早停、最佳模型保存）、多维度评估（准确率/精确率/召回率/F1/混淆矩阵）、鲁棒性测试（高斯噪声、旋转、裁剪、低分辨率等 5 种扰动场景）、开集识别（不属于 10 类的输入判定为「其他」并给出提示）到 Streamlit 图形界面的全流程工程实现。项目采用多模块化结构（data / models / utils / tests / docs / report），模块间接口清晰、异常处理完善，并配套 46 项自动化测试与三份文档（技术文档、用户说明书、本报告）。实测在 RTX 5060 GPU 上训练约 48 分钟（第 40 轮触发早停，最佳模型为第 30 轮、验证准确率 92.56%），测试集准确率 **91.75%**（宏平均 F1 0.9174，见 5.3 节实际运行结果），单张图片 GPU 推理延迟 3.23 ms（batch=128 时吞吐 4942 img/s），满足课程全部设计与验收要求。
 
 **关键词**：图像分类；卷积神经网络；残差网络；PaddlePaddle；CIFAR-10；Streamlit
 
@@ -38,6 +38,7 @@ CIFAR-10 是学术界最常用的入门级图像分类基准数据集：10 类�
 
 - 在 CIFAR-10 测试集上达到 **90% 以上**的 Top-1 准确率；
 - 提供可视化 Web 界面，上传图片即可得到 Top-3 类别与置信度；
+- 支持**开集识别**：不属于这 10 类的图片判定为「其他」并给出提示，而不是强行归入某一类；
 - 系统在数据异常、模型缺失、图片损坏等非正常输入下不崩溃，给出明确提示；
 - 输出完整的量化评估（指标 + 混淆矩阵 + 鲁棒性对比 + 耗时）与三份文档。
 
@@ -58,11 +59,12 @@ CIFAR-10 是学术界最常用的入门级图像分类基准数据集：10 类�
 3. **模型评估**：准确率、精确率、召回率、F1 分类报告、混淆矩阵可视化与导出；
 4. **鲁棒性测试**：构建高斯噪声/旋转/裁剪平移/低分辨率/中心裁剪 5 类扰动测试集并对比准确率；
 5. **推理服务**：命令行单图推理（Top-3 + JSON 输出）与 Streamlit Web 界面；
-6. **运行支撑**：日志记录、模型保存/加载、训练曲线绘制、单元测试。
+6. **开集识别**：双条件判定（最高 softmax < `CONFIDENCE_THRESHOLD`=0.5 **或** 最大 logit < `LOGIT_THRESHOLD`=4.0）把不属于 10 类的输入归为「其他」并给出中文提示；CLI（`--no-other` 可关闭）与 Web 界面判定逻辑同源；
+7. **运行支撑**：日志记录、模型保存/加载、训练曲线绘制、单元测试。
 
 ### 2.3 非功能需求
 
-- **可靠性**：文件不存在、格式错误、图片损坏、模型结构不匹配等异常均有中文提示，不崩溃；
+- **可靠性**：文件不存在、格式错误、图片损坏、模型结构不匹配等异常均有中文提示，不崩溃；对不属于 10 类的输入给出「其他」判定而非硬猜；
 - **可复现性**：固定随机种子（SEED=42），数据划分与实验结果可复现；
 - **性能**：GPU 训练吞吐 ≥ 800 img/s；单张推理延迟 ≤ 10 ms；
 - **可移植性**：路径集中于 `config.py`，CPU/GPU 自动检测，跨平台运行。
@@ -116,7 +118,7 @@ CIFAR-10 tar 包(自动下载+MD5校验)
 各模块对外接口（函数签名、参数、返回值、异常约定）汇总表见 `docs/technical_doc.md` 第 2 节。设计原则：
 
 1. **单一职责**：数据/模型/指标/IO 分离；
-2. **共用核心**：CLI 与 UI 共用 `predict.predict_image`，评估与训练共用 `metrics` 与 `load_model`；
+2. **共用核心**：CLI 与 UI 共用 `predict.predict_image`，评估与训练共用 `metrics` 与 `load_model`，开集判定阈值统一来自 `config.py`——避免两条推理路径出现行为不一致；
 3. **异常契约**：底层抛带中文排查提示的明确异常类型（FileNotFoundError/ValueError/IOError/RuntimeError），上层捕获转译。
 
 ## 4. 系统实现
@@ -162,9 +164,23 @@ class BasicBlock(nn.Layer):
 
 ### 4.5 用户界面实现
 
-Streamlit 实现：`@st.cache_resource` 缓存模型（会话内只加载一次）、`@st.cache_data` 缓存相同图片的推理结果；上传组件限定 jpg/jpeg/png/bmp/webp；结果区展示 Top-3 表格 + 柱状图 + 全类别概率分布折叠区；模型缺失、图片损坏等异常均转换为 `st.error` 中文提示。
+Streamlit 实现：`@st.cache_resource` 缓存模型（43 MB 权重整个会话只加载一次）；**推理函数不做缓存**——单张推理仅约 3 ms 本无需缓存，且早期使用的 `@st.cache_data` 会忽略名称以下划线开头的参数、导致缓存键恒定不变（详见技术文档排查记录 16），已移除。上传组件限定 jpg/jpeg/png/bmp/webp；结果区展示 Top-3 表格 + 柱状图 + 全类别概率分布折叠区；模型缺失、图片损坏等异常均转换为 `st.error` 中文提示。
 
-### 4.6 关键容错代码（示例）
+界面同时实现了**开集识别**：当最高 softmax 概率低于 0.5 或最大 logit 低于 4.0 时，判定该图片不属于已训练的 10 类，用 `st.warning` 弹出黄色警告、结果区显示「other（其他）」并给出实际置信度，而不是强行返回一个类别。判定逻辑与 `predict.py` 完全一致，阈值同源取自 `config.py`。
+
+### 4.6 开集识别实现（示例）
+
+```python
+# app.py（界面）与 predict.py（命令行）共用同一套判定规则
+max_p = float(probs.max())                       # 最高 softmax 概率
+max_l = float(logits[0].max().item())            # 最大 logit 分值
+is_other = (max_p < config.CONFIDENCE_THRESHOLD) or (max_l < config.LOGIT_THRESHOLD)
+# 命中任一条件 → 该图片被判为「其他」（类别索引约定为 -1），界面显示警告，CLI 首行输出「其他」
+```
+
+之所以用「softmax + logit」双条件：模型本质是闭集分类器，对分布外输入 softmax 会「过度自信」（实测噪声图中位数仍高达 0.65~0.80），而 max-logit 的区分度更好（分布内中位数约 10.1，分布外显著更低），两者取「或」可兼顾召回与精度，思路对应 Hendrycks 等提出的 MaxLogit / Energy 开集识别基线。
+
+### 4.7 关键容错代码（示例）
 
 ```python
 def load_model(model, path, strict=True, device=None):
@@ -183,13 +199,15 @@ def load_model(model, path, strict=True, device=None):
 
 ### 5.1 单元测试
 
-`tests/` 目录 3 个测试文件共 **31 个用例**，全部通过（`python -m pytest tests/ -v`，实测 22.95s）：
+`tests/` 目录 4 个测试文件共 **46 个用例**，全部通过（`python -m pytest tests/ -v`，实测 `46 passed in 27.05s`）：
 
 | 文件 | 覆盖内容 | 用例数 |
 |---|---|---|
-| test_data.py | 变换流水线形状/数值范围/确定性、5 种扰动函数、数据划分确定性与无重叠 | 19 |
+| test_data.py | 变换流水线形状/数值范围/确定性、5 种扰动函数、数据划分确定性与无重叠 | 15 |
 | test_model.py | 前向形状、各阶段特征图尺寸、参数量、反向传播、保存/加载往返一致、异常加载 | 8 |
-| test_inference.py | 推理预处理、Top-K 结构与概率和、损坏/缺失/不支持格式异常 | 4 组 |
+| test_inference.py | 推理预处理与输入统一转换、Top-K 结构与概率和、静态图模式兼容性、**开集判定（「其他」）**、损坏/缺失/不支持格式异常 | 21 |
+| test_app_ui.py | **Streamlit 界面端到端**：用官方 `AppTest` 真实执行 app.py，连续上传 3 张图片断言结果各不相同 | 2 |
+| **合计** | | **46** |
 
 ### 5.2 多类型测试数据集设计
 
@@ -232,12 +250,22 @@ def load_model(model, path, strict=True, device=None):
 
 另：`predict.py` 命令行单图预测端到端约 0.6 s（含模型加载与 GPU 初始化），纯推理仅 3.2 ms；实测 3 张样例图（cat/ship/horse）全部预测正确，Top-1 置信度分别为 99.99%、100.00%、88.92%。
 
+**（5）开集识别标定**——`ood_calibration.json`（双条件阈值：最高 softmax < 0.5 **或** 最大 logit < 4.0）：
+
+| 场景 | 样本 | 结果 |
+|---|---|---|
+| 分布内（应正常归类） | 官方测试集前 1000 张真实图片 | 仅 softmax 条件命中 1.2%、仅 logit 条件命中 3.2%、双条件并集误判 **3.6%** |
+| 分布外（应被拦截） | 噪声 150 张 + 涂鸦 150 张 = 300 张 | 拦截率 **49.7%**（换个构造方式复测为 61.7%，该值随分布外样本的构造方式波动） |
+
+演示用图实测：`test_imgs/ood_noise.png`（softmax=0.653、logit=3.62）与 `test_imgs/ood_doodle.png`（softmax=0.552、logit=3.02）均被正确判为「其他」；而三张真实测试图（cat 99.99%、ship 100.00%、horse 88.92%）均正常判为 10 类之一，说明该机制没有明显损伤正常识别。
+
 ### 5.4 结果分析与讨论
 
 1. **基准性能**：ResNet18 在 CIFAR-10 测试集上达到 91.75% 的准确率（宏平均精确率/召回率/F1 均为 0.917x，各类均衡），接近该结构的公开最好水平（93~94%），验证了数据增强 + 学习率衰减 + 早停策略的有效性。训练在第 40 轮触发早停（最佳第 30 轮），避免了后期过拟合（第 30 轮后训练损失仍降但验证损失已回升），早停与最佳模型保存机制发挥了预期作用；
 2. **鲁棒性**：裁剪平移（91.55%）与中心裁剪（88.05%）下准确率下降有限，说明随机裁剪增强确实提升了平移/裁剪不变性；旋转（85.10%）下降居中；高斯噪声（36.55%）与低分辨率（22.40%）下降剧烈，因为训练分布中不含这两类退化——CIFAR-10 图 32×32 的信息量本就有限，噪声或降到 12×12 后有效信噪比大幅流失。可通过在训练增强中加入高斯噪声（`ColorJitter`/自定义噪声层）与 `RandomRotation` 针对性改善；
 3. **易混淆类别**：实测 Top-5 混淆对为 dog→cat（92 次）、cat→dog（63 次）、bird→airplane（33 次）、automobile→truck（32 次）、cat→deer（27 次），语义相近类别互混最多（猫狗双向互混占两者错误的大头），与人类直觉一致，可通过更大模型（ResNet34）或更强增强（AutoAugment、Mixup）改善；
 4. **耗时**：GPU 上单张推理仅 3.23 ms，满足实时性要求；batch 从 1 增到 128 时吞吐量从 309.5 提升到 4942.0 img/s（16 倍），说明小批量场景 GPU 利用率不足，批量服务化部署时应凑批推理；
+5. **开集识别**：闭集分类器对任何输入都会在 10 类里"硬猜"一个答案。本项目在其之上叠加 softmax + logit 双条件判定：阈值调得松（只卡 softmax）漏检多，调得紧（只卡 logit）又会误伤真实图片，因此取"两者任一命中"的折中——最终对真实图片的误判仅 3.6%，同时拦下约一半的噪声/涂鸦类输入，属于**低代价的可靠性提升**。局限同样明确：与 CIFAR-10 风格接近的平滑色块图仍可能被"自信地"误判，后续可用 Energy-based OOD 或 Outlier Exposure 进一步改善。
 
 ## 6. 可靠性与容错性设计
 
@@ -247,23 +275,25 @@ def load_model(model, path, strict=True, device=None):
 | 模型加载 | 文件不存在/为空/键不匹配/损坏 → 分别给出针对性中文提示 |
 | 图片输入 | 路径/目录/格式/损坏四类校验，`PIL img.load()` 提前解码暴露坏图 |
 | 推理过程 | 未知异常兜底捕获，退出码区分错误类别（1 模型 / 2 图片 / 3 推理） |
+| 非 10 类输入 | 开集识别双条件判定（softmax < 0.5 或 max-logit < 4.0）→ 归为「其他」并给出中文提示，不硬猜 |
 | Web 界面 | 模型缺失引导训练、图片损坏提示重传、推理异常兜底，页面不白屏 |
 | 训练中断 | 每 epoch 落盘最佳模型与历史 JSON；`--resume` 支持断点续训 |
 | 日志追溯 | 全模块统一 logger，控制台 + `outputs/logs/run.log` 双写 |
-| 回归保障 | 31 个单元测试覆盖数据/模型/推理核心链路 |
+| 回归保障 | 46 个单元测试覆盖数据/模型/推理/界面四条链路（含 Streamlit 端到端） |
 
 ## 7. 总结与展望
 
 ### 7.1 工作总结
 
-本项目完整实现了基于飞桨的 CIFAR-10 图像分类识别系统：以 `paddle.nn` 原生搭建 32×32 适配版 ResNet18，实现并验证了数据自动管理、训练策略（增强/衰减/早停/最佳保存）、多维评估、5 类扰动鲁棒性测试、推理耗时分析与 Streamlit 交互界面；项目结构模块化、接口清晰、异常处理完备，配有 31 个单元测试与技术文档/用户说明书/本报告三份文档，达到课程设计全部要求。开发过程中还实际排查了 CPU/GPU 包冲突、paddle 3.x API 变更（Cifar10 类名、LR 调度器、grad 属性化）等真实工程问题，记录于技术文档错误排查表。
+本项目完整实现了基于飞桨的 CIFAR-10 图像分类识别系统：以 `paddle.nn` 原生搭建 32×32 适配版 ResNet18，实现并验证了数据自动管理、训练策略（增强/衰减/早停/最佳保存）、多维评估、5 类扰动鲁棒性测试、推理耗时分析、开集识别（非 10 类输入判为「其他」）与 Streamlit 交互界面；项目结构模块化、接口清晰、异常处理完备，配有 46 项自动化测试（含 Streamlit 界面端到端）与技术文档/用户说明书/本报告三份文档，达到课程设计全部要求。开发过程中还实际排查了 CPU/GPU 包冲突、paddle 3.x API 变更（Cifar10 类名、LR 调度器、grad 属性化）、静态图模式拒绝 uint8 数组、Streamlit 缓存键退化为常量等真实工程问题，记录于技术文档错误排查表。
 
 ### 7.2 展望
 
 1. **精度提升**：引入 Mixup/CutMix、AutoAugment、标签平滑，或升级 ResNet34/SE-ResNet；
 2. **鲁棒性增强**：在训练增强中加入高斯噪声与随机旋转，针对性提升扰动场景表现；
-3. **功能扩展**：支持自定义数据集训练（替换 config 类别表即可）、批量图片推理、模型导出 ONNX 跨框架部署；
-4. **工程深化**：Docker 容器化交付、GPU TensorRT 加速推理、Gradio 多模型对比界面。
+3. **开集识别改进**：用 Energy-based OOD 或 Outlier Exposure 替代当前的双阈值启发式，提升对"平滑色块类"分布外输入的拦截率；
+4. **功能扩展**：支持自定义数据集训练（替换 config 类别表即可）、批量图片推理、模型导出 ONNX 跨框架部署；
+5. **工程深化**：Docker 容器化交付、GPU TensorRT 加速推理、Gradio 多模型对比界面；将 `ood_calibration.json` 的标定流程并入 `eval.py`，使阈值可一键复标。
 
 ## 附录 A：课程要求验收清单
 
@@ -273,30 +303,32 @@ def load_model(model, path, strict=True, device=None):
 | 2 | 用户交互界面设计 | app.py（Streamlit：上传/Top-3/置信度/异常提示） | `python -m streamlit run app.py` |
 | 3 | 数据模型构建与数据预处理 | data/dataset.py、data/preprocess.py | `python data/dataset.py` 自检 |
 | 4 | AI 模型选型与搭建 | models/resnet.py（paddle.nn 原生 ResNet18） | `python models/resnet.py` 自检 |
-| 5 | 核心算法设计与程序实现 | 残差结构+数据增强+lr 衰减+早停（train.py） | `python train.py --smoke` |
+| 5 | 核心算法设计与程序实现 | 残差结构+数据增强+lr 衰减+早停（train.py）+ 开集识别双条件判定（config/app/predict） | `python train.py --smoke` |
 | 6 | 数据集组织与管理、文件读写 | 自动下载+MD5 校验+固定种子划分（dataset.py、io_utils.py） | 删除 data/ 后重跑 |
 | 7 | 模型文件保存与加载 | outputs/best_model.pdparams + 容错 load_model | eval/predict 均实测 |
 | 8 | 多模块项目结构 | data/models/utils/tests/docs/report 分层 | 查看目录树 |
 | 9 | 模块接口设计、调用与联调 | technical_doc.md 第 2、8 节接口表 + 联调说明 | 阅读 |
-| 10 | 训练与推理错误排查 | technical_doc.md 第 6 节 10 条排查记录 | 阅读 |
-| 11 | 算法性能优化 | technical_doc.md 第 7 节优化记录（增强/衰减/早停等） | 对比消融 |
+| 10 | 训练与推理错误排查 | technical_doc.md 第 6 节 **16 条**排查记录 | 阅读 |
+| 11 | 算法性能优化 | technical_doc.md 第 7 节 8 条优化记录（增强/衰减/早停等） | 对比消融 |
 | 12 | 多类型测试数据集 | 标准集+高斯噪声+旋转+裁剪平移+低分辨率+中心裁剪 | `python eval.py` |
-| 13 | 运行效果与性能分析 | 准确率对比表/混淆矩阵/分类报告/推理耗时（5.3 节） | 查看 outputs/results/ |
-| 14 | 可靠性与容错性 | 本报告第 6 节措施 + 31 个单元测试 | `python -m pytest tests/ -v` |
+| 13 | 运行效果与性能分析 | 准确率对比表/混淆矩阵/分类报告/推理耗时/开集标定（5.3 节） | 查看 outputs/results/ |
+| 14 | 可靠性与容错性 | 本报告第 6 节措施 + **46 个**单元测试 | `python -m pytest tests/ -v` |
 | 15 | 技术文档 | docs/technical_doc.md | 阅读 |
 | 16 | 用户使用说明书 | docs/user_manual.md（面向非技术用户） | 阅读 |
 | 17 | 课程设计报告 | report/course_design_report.md | 本文档 |
 | 18 | 实践 Notebook（教材风格，含真实运行输出） | cifar10_practice.ipynb（11 节 / 44 单元） | `python -m jupyter notebook cifar10_practice.ipynb` |
+| 19 | 开集识别：「其他」类别判定（非 10 类输入不硬猜） | config.py 阈值 + predict.py / app.py 判定 + ood_calibration.json 标定 | `python predict.py --image test_imgs/ood_noise.png` |
 
 ### 验收运行步骤（5 分钟快速版）
 
 ```bash
 cd image_classification_paddle
-python -m pytest tests/ -v          # ① 单元测试（31 个用例）
+python -m pytest tests/ -v          # ① 单元测试（46 个用例）
 python eval.py                      # ② 评估+鲁棒性+耗时（需已训练模型）
-python predict.py --image test_imgs/1_ship.png   # ③ 单图推理
-python -m streamlit run app.py      # ④ Web 界面上传 test_imgs/ 中图片
-python -m jupyter notebook cifar10_practice.ipynb  # ⑤ 查看完整实践 Notebook
+python predict.py --image test_imgs/1_ship.png    # ③ 单图推理（应当输出「船」）
+python predict.py --image test_imgs/ood_noise.png # ④ 开集识别（应当输出「其他」）
+python -m streamlit run app.py      # ⑤ Web 界面上传 test_imgs/ 中图片
+python -m jupyter notebook cifar10_practice.ipynb  # ⑥ 查看完整实践 Notebook
 ```
 
 ### 可能遇到的问题与解决方案

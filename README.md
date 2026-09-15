@@ -15,7 +15,7 @@
 - **图形界面**：Streamlit 上传图片，展示 Top-3 类别与置信度柱状图、全类别概率分布
 - **开集识别**：非 10 类图片（噪声/无关图）自动归为「其他」，而不是硬给一个类别
 - **容错设计**：模型加载/图片读取全链路中文异常提示，模块化结构、接口清晰
-- **单元测试**：`tests/` 覆盖数据、模型、推理三大模块（pytest / unittest 兼容）
+- **单元测试**：`tests/` 覆盖数据、模型、推理、界面四条链路（pytest / unittest 兼容）
 
 ## 📁 项目结构
 
@@ -24,7 +24,7 @@ image_classification_paddle/
 ├── config.py               # 全局配置：路径、超参数、类别名称
 ├── requirements.txt        # 依赖清单
 ├── cifar10_practice.ipynb  # ★ 完整实践 Notebook（已含真实运行输出，教材风格）
-├── 课程设计汇报.pptx        # ★ 汇报用 PPT（13 页，含图表，附讲者备注）
+├── 课程设计汇报.pptx        # ★ 汇报用 PPT（14 页，含图表，附讲者备注）
 ├── train.py                # 训练主程序（命令行参数、早停、保存最佳模型）
 ├── eval.py                 # 评估：测试集指标 + 鲁棒性测试 + 推理耗时
 ├── predict.py              # 单张图片推理（Top-3 类别与置信度）
@@ -119,7 +119,7 @@ python -m pytest tests/ -v
 python -m unittest discover tests -v
 ```
 
-测试共 **42 项**，覆盖数据、模型、推理与界面四条链路：
+测试共 **46 项**，覆盖数据、模型、推理与界面四条链路：
 
 | 文件 | 覆盖内容 |
 |---|---|
@@ -151,7 +151,7 @@ python -m jupyter notebook cifar10_practice.ipynb
 
 | 页 | 内容 | 页 | 内容 |
 |---|---|---|---|
-| 1 | 封面（含姓名学号待填栏） | 8 | 评估结果（逐类 F1） |
+| 1 | 封面（小组成员署名） | 8 | 评估结果（逐类 F1） |
 | 2 | 小组分工 | 9 | 混淆矩阵分析 |
 | 3 | 背景与目标 | 10 | 多类型测试数据集（鲁棒性） |
 | 4 | 系统架构 | 11 | 推理性能分析 |
@@ -159,7 +159,8 @@ python -m jupyter notebook cifar10_practice.ipynb
 | 6 | 模型选型与搭建 | 13 | 错误排查记录（真实故障复盘） |
 | 7 | 模型训练 | 14 | 总结与展望 |
 
-> 生成脚本 `outputs/make_ppt.js`，布局自检脚本 `outputs/qa_ppt.py`（可改内容后重新生成）。
+> PPT 生成脚本 `outputs/make_ppt.js` 与布局自检脚本 `outputs/qa_ppt.py` 属开发期脚手架，
+> 保留在作者源码目录中，**未包含在提交包内**（不影响本系统的运行与验收）。
 
 ## 📊 实测结果（RTX 5060 GPU）
 
@@ -170,19 +171,20 @@ python -m jupyter notebook cifar10_practice.ipynb
 | 推理延迟（batch=1, GPU） | 3.23 ms/张（吞吐 309 img/s；batch=128 时 4942 img/s） |
 | 训练时长 | 40 epoch 早停（最佳第 30 轮，验证 acc 92.56%），约 48 分钟 |
 | 模型参数量 | 11.17 M（权重文件约 45 MB） |
+| 开集识别（「其他」判定） | 真实测试图误判 3.6%（1000 张）；噪声/涂鸦类拦截 49.7%（双条件阈值 softmax<0.5 或 max-logit<4.0） |
 
-> 详细报告见 `outputs/results/`（分类报告、混淆矩阵、对比表、耗时分析）。
+> 详细报告见 `outputs/results/`（分类报告、混淆矩阵、对比表、耗时分析、开集标定 `ood_calibration.json`）。
 
 ## 📖 更多文档
 
 | 文档 | 内容 |
 |---|---|
-| 📊 [课程设计汇报.pptx](课程设计汇报.pptx) | 答辩用 PPT（13 页，含图表与讲者备注） |
+| 📊 [课程设计汇报.pptx](课程设计汇报.pptx) | 答辩用 PPT（14 页，含图表与讲者备注） |
 | 📓 [cifar10_practice.ipynb](cifar10_practice.ipynb) | 完整实践 Notebook（含真实运行输出） |
-| 📄 [技术文档](docs/technical_doc.md) | 模块接口、数据流、模型结构、15 条错误排查记录、联调说明 |
-| 📘 [用户使用说明书](docs/user_manual.md) | 面向非技术用户：安装、训练、识别、11 条常见问题 |
-| 📑 [课程设计报告](report/course_design_report.md) | 完整课程报告（含实测数据与 18 项验收清单） |
-| 📈 [评估结果目录](outputs/results) | 分类报告、混淆矩阵、鲁棒性对比表、训练历史 |
+| 📄 [技术文档](docs/technical_doc.md) | 模块接口、数据流、模型结构、16 条错误排查记录、联调说明 |
+| 📘 [用户使用说明书](docs/user_manual.md) | 面向非技术用户：安装、训练、识别、12 条常见问题 |
+| 📑 [课程设计报告](report/course_design_report.md) | 完整课程报告（含实测数据与 19 项验收清单） |
+| 📈 [评估结果目录](outputs/results) | 分类报告、混淆矩阵、鲁棒性对比表、训练历史、开集标定 |
 
 ## 📚 参考
 

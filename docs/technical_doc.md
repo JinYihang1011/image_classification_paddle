@@ -1,7 +1,7 @@
 # 项目技术文档
 
 **项目名称**：基于飞桨的 CIFAR-10 图像分类识别系统
-**技术栈**：PaddlePaddle 3.x（兼容 2.4+）· Python 3.8+ · Streamlit · ResNet18
+**技术栈**：PaddlePaddle 3.x（兼容 2.4+）· Python 3.8+ · Streamlit · ResNet18 · 双条件开集识别（「其他」类别判定）
 **参考教材**：邱锡鹏《神经网络与深度学习》5.5 节"实践：基于 ResNet18 网络完成图像分类任务（CIFAR-10）"（课程配套代码 `Practice-in-Paddle-main/chap5卷积神经网络`）
 
 ---
@@ -59,6 +59,9 @@
 | `BATCH_SIZE / NUM_EPOCHS / LEARNING_RATE` | int/float | 训练超参数默认值 |
 | `LR_SCHEDULER / LR_STEP_SIZE / LR_GAMMA` | — | 阶梯衰减配置（step / cosine 可选） |
 | `EARLY_STOP_PATIENCE` | int | 早停容忍轮数 |
+| `CONFIDENCE_THRESHOLD` | float | 开集识别条件 1：最高 softmax 概率低于该值判「其他」（默认 0.5） |
+| `LOGIT_THRESHOLD` | float | 开集识别条件 2：最大 logit 低于该值判「其他」（默认 4.0） |
+| `OTHER_CLASS_EN / _CN` | str | 「其他」类别的英文/中文显示名（类别索引约定为 `-1`） |
 | `ensure_dirs()` | fn | 创建全部输出目录 |
 
 ### 2.2 data/dataset.py
@@ -74,7 +77,8 @@
 | 接口 | 说明 |
 |---|---|
 | `build_transform(is_train)` | 训练：RandomCrop(32,pad=4)+RandomHorizontalFlip+ToTensor+Normalize；评估：ToTensor+Normalize |
-| `build_infer_transform()` | 推理：Resize(32,32)+ToTensor+Normalize（与训练归一化参数一致） |
+| `image_to_tensor(image, normalize, size)` | 自实现的「PIL → 缩放 → float32 → CHW → 标准化」，**完全绕开飞桨的 `ToTensor`**，静态图与动态图模式下均可用（排查记录 15 的修复核心） |
+| `build_infer_transform()` | 推理：Resize(32,32)+ToTensor+Normalize（与训练归一化参数一致；仍保留供常规路径使用） |
 | `add_gaussian_noise(img, sigma, seed)` | 高斯噪声扰动（默认 σ=0.08，固定 seed 可复现） |
 | `rotate_image(img, degree, seed)` | 随机旋转（默认 ±20°） |
 | `random_crop_shift(img, max_shift, seed)` | 随机裁剪平移（±4px） |
@@ -104,8 +108,12 @@
 | | `setup_chinese_font()` | matplotlib 中文字体配置 |
 | `io_utils.py` | `save_model(model, path, meta)` | `paddle.save` 权重 + `.meta.json` 元信息 |
 | | `load_model(model, path, strict, device)` | 容错加载：文件不存在/为空/键不匹配/损坏 → 中文提示异常 |
+| | `ensure_parent(path)` | 安全创建父目录（路径不含目录部分时不再报错，见排查记录 12） |
+| | `ensure_rgb_pil(image)` | 把路径/字节流/PIL（任意 mode）/numpy（HWC·CHW·灰度）统一归一化为 RGB PIL（排查记录 13 的修复） |
+| | `ensure_dynamic_mode(verbose)` | 在入口与每次推理前把飞桨运行模式切回动态图并打印提示（排查记录 15 的修复） |
+| | `write_json / read_json / write_text / read_text / list_images` | 结果文件读写工具（JSON / 文本 / 图片清单） |
 | | `load_image(path)` | 图像加载（格式校验、损坏检测） |
-| | `format_topk(predictions)` | Top-K 结果格式化文本 |
+| | `format_topk(predictions)` | Top-K 结果格式化文本（判「其他」时首行显示「其他」） |
 
 ### 2.6 顶层脚本
 
@@ -113,8 +121,8 @@
 |---|---|---|
 | `train.py` | `Runner`（train_epoch/evaluate/train）、`parse_args` | 教材 RunnerV3 风格；早停+最佳模型保存+曲线绘制 |
 | `eval.py` | `evaluate_standard / evaluate_perturbed / benchmark_inference` | 测试集指标、5 种扰动对比、batch=1/64/128 延迟与吞吐 |
-| `predict.py` | `build_predictor(model_path)`、`predict_image(model, image, topk)` | CLI 与 app.py 共用的推理核心；`--json` 结构化输出 |
-| `app.py` | `load_predictor`（`@st.cache_resource`）、`predict_once`（`@st.cache_data`） | Streamlit 界面：上传→Top-3 表格/柱状图→全类别分布 |
+| `predict.py` | `build_predictor(model_path)`、`predict_image(model, image, topk, reject_other, threshold)` | CLI 与 app.py 共用的推理核心；`reject_other=True` 时执行开集判定（`--no-other` 可关闭）；`--json` 结构化输出 |
+| `app.py` | `load_predictor`（`@st.cache_resource`）、`predict_once`（**不加缓存**，见排查记录 16）、开集判定 `is_other` | Streamlit 界面：上传→Top-3 表格/柱状图→全类别分布；置信度异常时判定并提示「其他」 |
 
 ## 3. 模型结构（CIFAR 版 ResNet18）
 
@@ -169,6 +177,12 @@ parse_args（命令行覆盖 config 默认值）
 2. **鲁棒性测试**（默认每项 2000 张，固定 seed 公平对比）：高斯噪声 σ=0.08、旋转 ±20°、裁剪平移 ±4px、低分辨率 12×12、中心裁剪 80%，结果写入 `comparison_table.md/csv`；
 3. **推理耗时**：batch=1/64/128 三档的平均延迟与吞吐量（先 20 次预热再统计，排除 CUDA 初始化一次性开销）。
 
+此外，**开集识别（「其他」类别判定）** 的阈值标定结果单独记录在 `outputs/results/ood_calibration.json`：
+在「最高 softmax < `CONFIDENCE_THRESHOLD` **或** 最大 logit < `LOGIT_THRESHOLD`」的双条件判定下，
+统计分布内（真实测试图）误判率与分布外（噪声/涂鸦）拦截率，并给出演示图的实测 softmax / logit 值。
+阈值取值的依据是：softmax 对噪声、平滑色块等输入会「过度自信」，而 max-logit 区分度更好
+（分布内中位数约 10.1，分布外显著更低），对应 Hendrycks 等提出的 MaxLogit / Energy 开集识别基线。
+
 ## 6. 错误排查记录（联调实测汇总）
 
 | # | 现象 | 原因 | 解决 |
@@ -200,20 +214,23 @@ parse_args（命令行覆盖 config 默认值）
 | 早停 | 验证 acc 连续 10 epoch 不升即停 | 避免无效训练，节省时间 |
 | 最佳模型保存 | 验证 acc 创新高才保存 | 测试用的一定是历史最佳权重 |
 | GPU 训练 | `paddle.set_device('gpu')` 自动检测 | 相比 CPU 提速约 15~20 倍 |
-| 推理缓存 | app.py `@st.cache_resource/@st.cache_data` | 模型只加载一次；相同图片不重复推理 |
+| 模型加载缓存 | app.py 用 `@st.cache_resource` 缓存模型 | 43 MB 权重整个会话只加载一次，页面打开快 |
+| 推理不做缓存 | 移除推理函数上的 `@st.cache_data` | 单张仅 3.23 ms，无需缓存；且该缓存曾因 Streamlit 忽略下划线参数导致缓存键恒定（见排查记录 16），移除后消除隐患 |
 | BN + 残差结构 | BasicBlock shortcut | 深层网络稳定收敛（教材 5.4 节结论） |
 
 ## 8. 联调说明（模块间调用关系）
 
-- `app.py` / `predict.py` 共用 `predict.build_predictor` 与 `predict.predict_image`，保证 CLI 与 UI 推理行为完全一致；
+- `app.py` / `predict.py` 共用 `predict.build_predictor` 与 `predict.predict_image`，保证 CLI 与 UI 推理行为完全一致（**含开集判定逻辑，两处阈值同源取自 `config.py`**）；
 - `eval.py` 的扰动测试复用 `data/preprocess.PERTURBATIONS`，新增扰动只需在字典中注册一项；
 - `train.py` / `eval.py` / `predict.py` 均通过 `utils.io_utils.load_model` 加载权重，错误提示统一；
 - 全部脚本通过 `config.py` 读写路径，迁移项目目录无需改代码；
-- 单元测试（`tests/`）覆盖数据/模型/推理三层，回归修改时先跑 `python -m pytest tests/ -v`。
+- 单元测试（`tests/`）覆盖数据 / 模型 / 推理 / 界面四层，共 46 个用例，回归修改时先跑 `python -m pytest tests/ -v`。
 
 ## 9. 已知限制与注意事项
 
 1. paddle 3.x 与 numpy≥2 组合会输出无害的 `VisibleDeprecationWarning`（paddle 官方源码触发）；
 2. Windows 下 `NUM_WORKERS` 默认 0（多进程 DataLoader 兼容性差），Linux 默认 4；
 3. 模型对多物体、大角度旋转、极低分辨率图片准确率会下降（见鲁棒性对比表），属 CIFAR-10 训练分布外的正常表现；
-4. 首次运行会下载 170MB 数据集；离线环境可手动放置 tar 包到 `data/cifar10/`。
+4. 首次运行会下载 170MB 数据集；离线环境可手动放置 tar 包到 `data/cifar10/`；
+5. **开集识别是阈值法启发式，不是严格的概率保证**：与 CIFAR-10 风格接近的平滑色块图仍可能被「自信地」误判为某一类（softmax 过度自信），分布外样本的拦截率约为一半，属已知局限；改进方向是 Energy-based OOD 或 Outlier Exposure；
+6. `outputs/results/ood_calibration.json` 是标定产物，目前尚未并入 `eval.py` 的自动输出流程，需要变更阈值时重新标定即可。
