@@ -1,0 +1,18 @@
+{
+  "方法": "双条件开集识别（softmax < 0.5 或 max-logit < 4.0）",
+  "标定": {
+    "分布内(测试集1000张)": {
+      "softmax中位数": 1.0,
+      "误判其他": "3.6%"
+    },
+    "分布外(噪声/涂鸦300张)": {
+      "softmax中位数": 0.754,
+      "拦截率": "49.7%"
+    }
+  },
+  "说明": "softmax 对平滑色块类输入会过度自信（如马赛克图 logit 高达 8），属已知局限；改进方向为 Energy-based OOD / Outlier Exposure",
+  "演示图": {
+    "ood_noise.png": "softmax=0.653, logit=3.62 → 判「其他」",
+    "ood_doodle.png": "softmax=0.552, logit=3.02 → 判「其他」"
+  }
+}

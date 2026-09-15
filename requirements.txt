@@ -1,0 +1,19 @@
+# 基于飞桨的 CIFAR-10 图像分类识别系统 —— 依赖清单
+# 安装：pip install -r requirements.txt
+#
+# 注意：paddlepaddle 请按硬件选择其一安装（不要重复安装 CPU/GPU 两个版本，
+#       否则会相互覆盖导致 GPU 不可用）：
+#   GPU（CUDA 12.8+，如 RTX 50 系）:
+#     pip install paddlepaddle-gpu==3.3.1 -i https://www.paddlepaddle.org.cn/packages/stable/cu129/
+#   CPU:
+#     pip install paddlepaddle==3.3.1
+
+paddlepaddle>=2.4          # 深度学习框架（GPU 版请按上方说明单独安装）
+numpy>=1.21                # 数值计算
+matplotlib>=3.5            # 训练曲线 / 混淆矩阵绘图
+pillow>=9.0                # 图像读取与预处理
+streamlit>=1.30            # 用户交互界面
+scikit-learn>=1.0          # 精确率/召回率/F1/混淆矩阵
+pandas>=1.5                # 结果表格展示
+seaborn>=0.12              # 混淆矩阵热力图（缺失时自动降级为 matplotlib）
+pytest>=7.0                # 单元测试（也可用 unittest 运行）

@@ -1,0 +1,83 @@
+{
+  "model": "D:\\Github\\Python_Schoolwork\\人工智能实践\\image_classification_paddle\\outputs\\best_model.pdparams",
+  "train_meta": {
+    "epoch": 30,
+    "val_acc": 0.9256,
+    "val_loss": 0.2545668716706336,
+    "train_acc": 0.9690888888888889,
+    "saved_at": "2026-09-14 17:02:48",
+    "model_path": "D:\\Github\\Python_Schoolwork\\人工智能实践\\image_classification_paddle\\outputs\\best_model.pdparams"
+  },
+  "test_accuracy": 0.9175,
+  "test_avg_loss": 0.28377912636799146,
+  "most_confused_pairs": [
+    {
+      "true": "dog",
+      "pred": "cat",
+      "count": 92
+    },
+    {
+      "true": "cat",
+      "pred": "dog",
+      "count": 63
+    },
+    {
+      "true": "bird",
+      "pred": "airplane",
+      "count": 33
+    },
+    {
+      "true": "automobile",
+      "pred": "truck",
+      "count": 32
+    },
+    {
+      "true": "cat",
+      "pred": "deer",
+      "count": 27
+    }
+  ],
+  "robustness": [
+    {
+      "name": "标准测试集(无扰动)",
+      "acc": 0.9175
+    },
+    {
+      "name": "高斯噪声(sigma=0.08)",
+      "acc": 0.3655
+    },
+    {
+      "name": "旋转(±20°)",
+      "acc": 0.851
+    },
+    {
+      "name": "随机裁剪平移(±4px)",
+      "acc": 0.9155
+    },
+    {
+      "name": "低分辨率(12x12)",
+      "acc": 0.224
+    },
+    {
+      "name": "中心裁剪(80%)",
+      "acc": 0.8805
+    }
+  ],
+  "timing": {
+    "batch_1": {
+      "batch_size": 1,
+      "avg_latency_ms": 2.976210117340088,
+      "throughput_img_per_s": 335.997782607407
+    },
+    "batch_64": {
+      "batch_size": 64,
+      "avg_latency_ms": 12.893228530883789,
+      "throughput_img_per_s": 4963.845932513926
+    },
+    "batch_128": {
+      "batch_size": 128,
+      "avg_latency_ms": 18.763391971588135,
+      "throughput_img_per_s": 6821.79427865814
+    }
+  }
+}

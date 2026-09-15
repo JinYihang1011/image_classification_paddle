@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# 项目运行产物（体积大 / 可通过训练与评估复现，按需保留）
+.conda/
+data/cifar10/*.tar.gz
+data/cifar10/*.part
+outputs/logs/
+outputs/results/*.png
+outputs/streamlit_test.log
+
+# 训练好的模型权重（约 45MB，如需随仓库分发可删除下面两行）
+# outputs/*.pdparams
+# outputs/*.meta.json
