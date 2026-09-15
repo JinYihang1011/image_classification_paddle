@@ -1,83 +1,83 @@
 {
-  "model": "D:\\Github\\Python_Schoolwork\\人工智能实践\\image_classification_paddle\\outputs\\best_model.pdparams",
+  "model": "D:\\Github\\image_classification_paddle\\outputs\\best_model.pdparams",
   "train_meta": {
-    "epoch": 30,
-    "val_acc": 0.9256,
-    "val_loss": 0.2545668716706336,
-    "train_acc": 0.9690888888888889,
-    "saved_at": "2026-09-14 17:02:48",
-    "model_path": "D:\\Github\\Python_Schoolwork\\人工智能实践\\image_classification_paddle\\outputs\\best_model.pdparams"
+    "epoch": 47,
+    "val_acc": 0.9288,
+    "val_loss": 0.2863581528618699,
+    "train_acc": 0.9916444444444444,
+    "saved_at": "2026-09-15 20:30:46",
+    "model_path": "D:\\Github\\image_classification_paddle\\outputs\\best_model.pdparams"
   },
-  "test_accuracy": 0.9175,
-  "test_avg_loss": 0.28377912636799146,
+  "test_accuracy": 0.9207,
+  "test_avg_loss": 0.29973723333847674,
   "most_confused_pairs": [
     {
       "true": "dog",
       "pred": "cat",
-      "count": 92
+      "count": 77
     },
     {
       "true": "cat",
       "pred": "dog",
-      "count": 63
+      "count": 68
     },
     {
-      "true": "bird",
+      "true": "ship",
       "pred": "airplane",
-      "count": 33
-    },
-    {
-      "true": "automobile",
-      "pred": "truck",
-      "count": 32
+      "count": 36
     },
     {
       "true": "cat",
+      "pred": "bird",
+      "count": 30
+    },
+    {
+      "true": "bird",
       "pred": "deer",
-      "count": 27
+      "count": 30
     }
   ],
   "robustness": [
     {
       "name": "标准测试集(无扰动)",
-      "acc": 0.9175
+      "acc": 0.9207
     },
     {
       "name": "高斯噪声(sigma=0.08)",
-      "acc": 0.3655
+      "acc": 0.3255
     },
     {
       "name": "旋转(±20°)",
-      "acc": 0.851
+      "acc": 0.8525
     },
     {
       "name": "随机裁剪平移(±4px)",
-      "acc": 0.9155
+      "acc": 0.9185
     },
     {
       "name": "低分辨率(12x12)",
-      "acc": 0.224
+      "acc": 0.226
     },
     {
       "name": "中心裁剪(80%)",
-      "acc": 0.8805
+      "acc": 0.903
     }
   ],
   "timing": {
     "batch_1": {
       "batch_size": 1,
-      "avg_latency_ms": 2.976210117340088,
-      "throughput_img_per_s": 335.997782607407
+      "avg_latency_ms": 3.3007311820983887,
+      "throughput_img_per_s": 302.9631753786946
     },
     "batch_64": {
       "batch_size": 64,
-      "avg_latency_ms": 12.893228530883789,
-      "throughput_img_per_s": 4963.845932513926
+      "avg_latency_ms": 11.959841251373291,
+      "throughput_img_per_s": 5351.24159717849
     },
     "batch_128": {
       "batch_size": 128,
-      "avg_latency_ms": 18.763391971588135,
-      "throughput_img_per_s": 6821.79427865814
+      "avg_latency_ms": 18.098015785217285,
+      "throughput_img_per_s": 7072.5985389266925
     }
   }
 }

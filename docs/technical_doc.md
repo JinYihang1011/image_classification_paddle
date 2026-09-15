@@ -200,7 +200,7 @@ parse_args（命令行覆盖 config 默认值）
 | 11 | 鲁棒性测试崩在"低分辨率"一项：`apply_low_resolution() got an unexpected keyword argument 'seed'` | 各扰动函数签名不统一（低分辨率/中心裁剪不需要随机种子，故未定义 `seed` 形参），而 eval.py 统一按 `fn(img, seed=...)` 调用 | `evaluate_perturbed` 中先尝试 `perturb_fn(img, seed=...)`，捕获 `TypeError` 后回退 `perturb_fn(img)`；`preprocess.py` 自检同理 |
 | 12 | `save_model` 保存到纯文件名（如 `_tmp.pdparams`，不含目录）时报 `FileNotFoundError: [WinError 3] 系统找不到指定的路径。: ''` | `os.makedirs(os.path.dirname(path))` 在路径无目录部分时 `dirname` 返回空串 | 改为调用统一的 `ensure_parent(path)`（内部判断 `if parent:` 后才建目录）；该 bug 由 Notebook 容错演示单元暴露 |
 | 13 | 界面提示 `识别失败：The data type of 'input' in assign must be ['float32',...], but received uint8` | 飞桨的张量创建（`paddle.assign` / `to_tensor`）**不接受 uint8 数组**。该报错说明有原始 uint8 像素数组未经转换直接进入了飞桨的张量环节（绕过「PIL → ToTensor → Normalize」正规路径） | 新增 `utils/io_utils.ensure_rgb_pil()` 输入防御层：把路径/字节流/PIL（任意 mode）/numpy（HWC、CHW、灰度，uint8/浮点）统一归一化为 RGB PIL 图像，`predict_image` 与 `app.py` 均改走该层，从源头杜绝该错误 |
-| 14 | **重新训练后界面预测明显变差**（同一张图从「猫 99.99%」变成「船 38.70%」） | `train.py` 每次验证准确率提升都会覆盖 `outputs/best_model.pdparams`。一次中断的训练（跑到 epoch 4，验证 70.18%）把之前训练好的模型（epoch 30，92.56%）覆盖了，而文件本身的元信息 `.meta.json` 也随之更新，不易察觉 | ① `train.py` 启动时打印覆盖警告；② 首次覆盖前自动备份旧模型为 `outputs/best_model_backup_<时间戳>.pdparams`；③ 每个 epoch 另存 `outputs/last_model.pdparams`；④ 从提交包中恢复了被覆盖的最佳模型 |
+| 14 | **重新训练后界面预测明显变差**（同一张图从「猫 99.99%」变成「船 38.70%」） | `train.py` 每次验证准确率提升都会覆盖 `outputs/best_model.pdparams`。一次中断的训练（跑到 epoch 4，验证 70.18%）把之前训练好的模型（epoch 30，验证 92.56%，为当时的最佳模型）覆盖了，而文件本身的元信息 `.meta.json` 也随之更新，不易察觉 | ① `train.py` 启动时打印覆盖警告；② 首次覆盖前自动备份旧模型为 `outputs/best_model_backup_<时间戳>.pdparams`；③ 每个 epoch 另存 `outputs/last_model.pdparams`；④ 从提交包中恢复了被覆盖的最佳模型 |
 | 15 | **Web 界面任何图片都报** `识别失败：...in assign must be ['float32',...], but received uint8`，但命令行完全正常 | **飞桨处于静态图模式**时，`paddle.to_tensor(uint8 数组)` 走 `_to_tensor_static → assign()` 分支被 `check_dtype` 拒绝；而 `paddle.vision.transforms.ToTensor` 对 PIL 图像内部执行的正是 `paddle.to_tensor(np.asarray(pic))`，`np.asarray(RGB图)` 恰恰是 uint8。动态图模式下 `to_tensor` 有 uint8 → float 的转换分支所以正常，因此该故障只在特定宿主环境（进程处于静态图模式）暴露。堆栈证据：`functional_pil.py:76 → creation.py:1152 → tensor() → _to_tensor_static() → assign()` | ① 新增 `data/preprocess.image_to_tensor()`：自己完成「PIL 缩放 → float32 numpy → CHW → 标准化」，**完全绕开 paddle 的 ToTensor**，与运行模式无关（经实测在静态图模式下也能成功）；② 新增 `utils/io_utils.ensure_dynamic_mode()`，在 `app.py`/`predict.py`/`eval.py`/`train.py` 入口以及**每次推理前**调用，自动把静态图模式切回动态图并打印提示（因为静态图模式下连模型前向也会报 `conv2d(): argument (position 2) must be Value, but got EagerParamBase`）；③ 新增 3 个回归测试（`TestRuntimeResilience`）固化该场景 |
 | 16 | **上传第二张图片后，界面仍显示第一张图片的识别结果**（第一张正常，之后全是同一结果） | `@st.cache_data` 会**忽略名称以下划线开头的参数**。当时为了跳过大体量字节流的哈希，把图片参数命名为 `_img_bytes`，导致缓存键退化成只有 `(model_path, topk)` 且恒定不变 —— 第一次上传的返回值被后续每一次上传复用 | 移除 `predict_once` 上的 `@st.cache_data`：推理在 GPU 上仅约 3ms，本就无需缓存；昂贵的模型加载仍由 `@st.cache_resource` 单独缓存。新增 `tests/test_app_ui.py`，用 Streamlit 官方 `AppTest` **真实执行 app.py 并连续上传 3 张不同图片**，断言结果各不相同且各自正确，防止该 bug 复发 |
 
@@ -215,7 +215,7 @@ parse_args（命令行覆盖 config 默认值）
 | 最佳模型保存 | 验证 acc 创新高才保存 | 测试用的一定是历史最佳权重 |
 | GPU 训练 | `paddle.set_device('gpu')` 自动检测 | 相比 CPU 提速约 15~20 倍 |
 | 模型加载缓存 | app.py 用 `@st.cache_resource` 缓存模型 | 43 MB 权重整个会话只加载一次，页面打开快 |
-| 推理不做缓存 | 移除推理函数上的 `@st.cache_data` | 单张仅 3.23 ms，无需缓存；且该缓存曾因 Streamlit 忽略下划线参数导致缓存键恒定（见排查记录 16），移除后消除隐患 |
+| 推理不做缓存 | 移除推理函数上的 `@st.cache_data` | 单张仅 3.30 ms，无需缓存；且该缓存曾因 Streamlit 忽略下划线参数导致缓存键恒定（见排查记录 16），移除后消除隐患 |
 | BN + 残差结构 | BasicBlock shortcut | 深层网络稳定收敛（教材 5.4 节结论） |
 
 ## 8. 联调说明（模块间调用关系）

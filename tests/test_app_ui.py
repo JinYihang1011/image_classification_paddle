@@ -27,7 +27,7 @@ import config  # noqa: E402
 SAMPLES = [
     ("0_cat.png", "cat"),
     ("1_ship.png", "ship"),
-    ("20_horse.png", "horse"),
+    ("9702_horse.png", "horse"),
 ]
 
 _HAS_MODEL = os.path.exists(config.MODEL_PATH)

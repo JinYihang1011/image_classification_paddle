@@ -1,3 +1,13 @@
+// =============================================================================
+// ⚠️ 历史开发脚本，与当前 PPT 已不同步 —— 请勿直接运行覆盖 课程设计汇报.pptx
+// -----------------------------------------------------------------------------
+// 说明：本脚本最初用于生成 课程设计汇报.pptx，之后 PPT 由人工多次修改
+//       （首页署名改为五位组员、备注与页码对齐、接口表条数、开集识别、
+//         演示图与各项指标更新等），本脚本无法复现这些改动。
+//       现仅作历史参考保留；如需再次自动生成，请先人工核对并对齐全部内容。
+// 指标已同步至 2026-09-15 最新一次训练与评估（92.07% / 第 47 轮 / 57 轮早停）。
+// =============================================================================
+
 // 生成《基于飞桨的 CIFAR-10 图像分类识别系统》课程设计汇报 PPT
 // 用 法: NODE_PATH=<npm root -g> node make_ppt.js
 const pptxgen = require("pptxgenjs");
@@ -70,7 +80,7 @@ function statCard(s, x, y, w, h, num, unit, label, opts = {}) {
   });
 
   // 关键数字条（本页视觉焦点之一）
-  const nums = [["91.75%", "测试集准确率"], ["3.23 ms", "单张推理延迟"], ["42 项", "自动化测试"]];
+  const nums = [["92.07%", "测试集准确率"], ["3.30 ms", "单张推理延迟"], ["46 项", "自动化测试"]];
   nums.forEach(([n, l], i) => {
     const x = M + i * 2.75;
     s.addText(n, { x, y: 4.85, w: 2.6, h: 0.55, fontSize: 27, bold: true, color: i === 0 ? ACCENT : WHITE, fontFace: FONT, margin: 0 });
@@ -81,7 +91,7 @@ function statCard(s, x, y, w, h, num, unit, label, opts = {}) {
     x: M, y: 6.35, w: CW, h: 0.35, fontSize: 13, color: "9DB9C4", fontFace: FONT, margin: 0
   });
   s.addNotes("开场：一句话点题——本项目不是只写一个训练脚本，而是把『数据—模型—训练—评估—部署→文档』整条链跑通。" +
-             "先说三个数字：测试集准确率 91.75%、单张推理 3.23 毫秒、42 项自动化测试全部通过。");
+             "先说三个数字：测试集准确率 92.07%、单张推理 3.30 毫秒、46 项自动化测试全部通过。");
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -155,7 +165,7 @@ function statCard(s, x, y, w, h, num, unit, label, opts = {}) {
     { text: "Top-3 类别 + 置信度", options: {} },
   ], { x: W - M - 2.94, y: 2.36, w: 2.7, h: 2.5, fontSize: 12, color: TEXT, fontFace: FONT, margin: 0, valign: "top", paraSpaceAfter: 7, bullet: bullet() });
 
-  source(s, "调用关系详见 docs/technical_doc.md 第 2 节（9 张接口表）与第 8 节（联调说明）");
+  source(s, "调用关系详见 docs/technical_doc.md 第 2 节（6 张接口表）与第 8 节（联调说明）");
   s.addNotes("架构的重点不是分层好看，而是『共用核心』：命令行与网页共用同一个推理函数，" +
              "评估与训练共用同一套指标和模型加载逻辑，所以行为一致、不会两边跑出不同结果。");
 }
@@ -289,8 +299,8 @@ function statCard(s, x, y, w, h, num, unit, label, opts = {}) {
     ["损失函数", "F.cross_entropy（多分类标准选择）"],
     ["优化器", "Adam，lr=1e-3，weight_decay=5e-4"],
     ["学习率衰减", "StepDecay：每 20 轮 ×0.1　→　第 20 轮出现台阶式跳升"],
-    ["早停", "验证准确率连续 10 轮不提升即停 → 第 40 轮触发"],
-    ["最佳模型", "验证准确率创新高才保存 → 取自第 30 轮"],
+    ["早停", "验证准确率连续 10 轮不提升即停 → 第 57 轮触发"],
+    ["最佳模型", "验证准确率创新高才保存 → 取自第 47 轮"],
   ];
   items.forEach(([k, v], i) => {
     const y = 1.68 + i * 0.88;
@@ -300,12 +310,12 @@ function statCard(s, x, y, w, h, num, unit, label, opts = {}) {
   });
 
   s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: M + 8.5, y: 6.1, w: 4.22, h: 0.62, fill: { color: PRIMARY }, line: { color: PRIMARY }, rectRadius: 0.06 });
-  s.addText("最佳验证准确率 92.56%（第 30 轮）", { x: M + 8.5, y: 6.12, w: 4.22, h: 0.58, fontSize: 13.5, bold: true, color: WHITE, fontFace: FONT, margin: 0, align: "center", valign: "middle" });
+  s.addText("最佳验证准确率 92.88%（第 47 轮）", { x: M + 8.5, y: 6.12, w: 4.22, h: 0.58, fontSize: 13.5, bold: true, color: WHITE, fontFace: FONT, margin: 0, align: "center", valign: "middle" });
 
-  source(s, "训练环境：NVIDIA RTX 5060 Laptop GPU，约 970 img/s，全程约 48 分钟（含早停）");
+  source(s, "训练环境：NVIDIA RTX 5060 Laptop GPU，约 1060 img/s，全程约 40 分钟（含早停）");
   s.addNotes("看曲线讲三件事：① 第 20 轮学习率降 10 倍，验证准确率台阶式跳升；" +
-             "② 第 30 轮之后训练损失还在降但验证损失回升——典型过拟合信号；③ 早停在第 40 轮介入，" +
-             "最佳模型取自第 30 轮，这就是『保存最佳而非最后一轮』的价值。");
+             "② 第 25 轮前后验证损失见底回升而训练损失仍在降——典型过拟合信号；③ 早停在第 57 轮介入，" +
+             "最佳模型取自第 47 轮，这就是『保存最佳而非最后一轮』的价值。");
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -314,10 +324,10 @@ function statCard(s, x, y, w, h, num, unit, label, opts = {}) {
 {
   const s = pres.addSlide();
   s.background = { color: LIGHT };
-  titleSlide(s, "测试集 10000 张：准确率 91.75%，各类表现均衡", "评估结果");
+  titleSlide(s, "测试集 10000 张：准确率 92.07%，各类表现均衡", "评估结果");
 
-  statCard(s, M, 1.6, 2.9, 1.5, "91.75", "%", "测试集 Top-1 准确率（9175/10000）", { numSize: 32, accent: true });
-  statCard(s, M + 3.05, 1.6, 2.9, 1.5, "0.9174", "", "宏平均 F1（精确率/召回率同为 0.917x）", { numSize: 28 });
+  statCard(s, M, 1.6, 2.9, 1.5, "92.07", "%", "测试集 Top-1 准确率（9207/10000）", { numSize: 32, accent: true });
+  statCard(s, M + 3.05, 1.6, 2.9, 1.5, "0.9205", "", "宏平均 F1（精确率/召回率同为 0.917x）", { numSize: 28 });
   statCard(s, M + 6.1, 1.6, 2.9, 1.5, "0.2838", "", "测试集平均交叉熵损失", { numSize: 28 });
 
   s.addText("逐类 F1（最高 / 最低）", { x: M + 9.35, y: 1.62, w: 2.78, h: 0.32, fontSize: 13, bold: true, color: PRIMARY, fontFace: FONT, margin: 0 });
@@ -342,7 +352,7 @@ function statCard(s, x, y, w, h, num, unit, label, opts = {}) {
   });
 
   source(s, "数据来源：outputs/results/classification_report.json（本项目实测，RTX 5060 GPU）");
-  s.addNotes("91.75% 接近该结构的公开最好水平（93~94%）。逐类看，猫最低（0.828）——因为猫的姿态毛色变化大，" +
+  s.addNotes("92.07% 接近该结构的公开最好水平（93~94%）。逐类看，猫最低（0.835）——因为猫的姿态毛色变化大，" +
              "且与狗高度相似；汽车最高（0.959）。这类类别不平衡的结论比一个总准确率更有信息量。");
 }
 
@@ -386,7 +396,7 @@ function statCard(s, x, y, w, h, num, unit, label, opts = {}) {
 
   s.addChart(pres.charts.BAR, [{
     name: "准确率", labels: ["标准测试集", "裁剪平移 ±4px", "中心裁剪 80%", "旋转 ±20°", "高斯噪声 σ=0.08", "低分辨率 12×12"],
-    values: [91.75, 91.55, 88.05, 85.10, 36.55, 22.40],
+    values: [92.07, 91.85, 90.30, 85.25, 32.55, 22.60],
   }], {
     x: M, y: 1.66, w: 8.5, h: 4.85, barDir: "bar",
     chartColors: ["14617C", "14617C", "14617C", "14617C", "DE7A1F", "DE7A1F"],
@@ -423,10 +433,10 @@ function statCard(s, x, y, w, h, num, unit, label, opts = {}) {
 {
   const s = pres.addSlide();
   s.background = { color: LIGHT };
-  titleSlide(s, "单张 3.23 ms，批量吞吐 4942 img/s", "推理性能分析");
+  titleSlide(s, "单张 3.30 ms，批量吞吐 7073 img/s", "推理性能分析");
 
-  statCard(s, M, 1.7, 3.0, 1.5, "3.23", "ms", "单张推理延迟（batch=1，含预处理）", { numSize: 32, accent: true });
-  statCard(s, M + 3.25, 1.7, 3.0, 1.5, "4942", "img/s", "批量吞吐（batch=128）", { numSize: 32 });
+  statCard(s, M, 1.7, 3.0, 1.5, "3.30", "ms", "单张推理延迟（batch=1，含预处理）", { numSize: 32, accent: true });
+  statCard(s, M + 3.25, 1.7, 3.0, 1.5, "7073", "img/s", "批量吞吐（batch=128）", { numSize: 32 });
   statCard(s, M + 6.5, 1.7, 3.0, 1.5, "43", "MB", "模型权重文件大小", { numSize: 32 });
 
   // 表格（右侧留出与全篇一致的 0.6" 页边距）
@@ -434,7 +444,7 @@ function statCard(s, x, y, w, h, num, unit, label, opts = {}) {
   s.addShape(pres.shapes.RECTANGLE, { x: tx, y: 1.7, w: tw, h: 0.48, fill: { color: PRIMARY }, line: { color: PRIMARY } });
   s.addText("batch", { x: tx + 0.1, y: 1.7, w: 0.75, h: 0.48, fontSize: 12, bold: true, color: WHITE, fontFace: FONT, margin: 0, valign: "middle" });
   s.addText("吞吐 img/s", { x: tx + 0.82, y: 1.7, w: tw - 0.92, h: 0.48, fontSize: 12, bold: true, color: WHITE, fontFace: FONT, margin: 0, valign: "middle", align: "right" });
-  [["1", "310"], ["64", "3362"], ["128", "4942"]].forEach(([b, t], i) => {
+  [["1", "303"], ["64", "5351"], ["128", "7073"]].forEach(([b, t], i) => {
     const y = 2.18 + i * 0.5;
     s.addShape(pres.shapes.RECTANGLE, { x: tx, y, w: tw, h: 0.5, fill: { color: i % 2 ? "EDF3F5" : WHITE }, line: { color: PRI_LT, width: 0.75 } });
     s.addText(b, { x: tx + 0.1, y, w: 0.75, h: 0.5, fontSize: 12, color: TEXT, fontFace: FONT, margin: 0, valign: "middle" });
@@ -446,15 +456,15 @@ function statCard(s, x, y, w, h, num, unit, label, opts = {}) {
   s.addText("性能解读", { x: M + 0.3, y: 3.9, w: 3.0, h: 0.32, fontSize: 14, bold: true, color: PRIMARY, fontFace: FONT, margin: 0 });
   s.addText([
     { text: "小批量场景 GPU 利用率不足：", options: { bold: true, color: TEXT } },
-    { text: "batch 从 1 增到 128，吞吐量提升 16 倍（310 → 4942 img/s），说明大批量能显著摊薄单张开销。", options: { color: TEXT, breakLine: true } },
+    { text: "batch 从 1 增到 128，吞吐量提升约 23 倍（303 → 7073 img/s），说明大批量能显著摊薄单张开销。", options: { color: TEXT, breakLine: true } },
     { text: "部署建议：", options: { bold: true, color: TEXT } },
-    { text: "生产环境应凑批推理而非逐张调用；界面单张 3.23 ms 已远快于人眼感知，无优化必要。", options: { color: TEXT, breakLine: true } },
+    { text: "生产环境应凑批推理而非逐张调用；界面单张 3.30 ms 已远快于人眼感知，无优化必要。", options: { color: TEXT, breakLine: true } },
     { text: "界面响应优化：", options: { bold: true, color: TEXT } },
     { text: "模型加载（43 MB）用 st.cache_resource 缓存，会话内只加载一次；推理本身不再缓存以保证每次上传都实时计算。", options: { color: TEXT } },
   ], { x: M + 0.3, y: 4.28, w: CW - 0.6, h: 1.38, fontSize: 13, fontFace: FONT, margin: 0, valign: "top", lineSpacingMultiple: 1.4, paraSpaceAfter: 5 });
 
   source(s, "测量方法：预热 20 次后统计 100 次平均，排除 CUDA 初始化等一次性开销（eval.py::benchmark_inference）");
-  s.addNotes("性能这页要讲两层：一是数字本身（3.23 ms 很快）；二是从数字看出的工程结论——" +
+  s.addNotes("性能这页要讲两层：一是数字本身（3.30 ms 很快）；二是从数字看出的工程结论——" +
              "batch 增大吞吐提升 16 倍说明小批量浪费了 GPU，所以服务化部署应该凑批。这是从数据推出决策。");
 }
 
@@ -466,9 +476,9 @@ function statCard(s, x, y, w, h, num, unit, label, opts = {}) {
   s.background = { color: LIGHT };
   titleSlide(s, "上传图片即得 Top-3 类别与置信度，异常输入不崩溃", "用户交互界面与容错性");
 
-  s.addText("以下为系统实际识别结果（模型：第 30 轮，验证准确率 92.56%）", { x: M, y: 1.56, w: 7.8, h: 0.3, fontSize: 12.5, color: MUTED, fontFace: FONT, margin: 0 });
+  s.addText("以下为系统实际识别结果（模型：第 47 轮，验证准确率 92.88%）", { x: M, y: 1.56, w: 7.8, h: 0.3, fontSize: 12.5, color: MUTED, fontFace: FONT, margin: 0 });
 
-  const samples = [["test_imgs/0_cat.png", "猫 cat", "99.99%"], ["test_imgs/1_ship.png", "船 ship", "100.00%"], ["test_imgs/20_horse.png", "马 horse", "88.92%"]];
+  const samples = [["test_imgs/0_cat.png", "猫 cat", "99.99%"], ["test_imgs/1_ship.png", "船 ship", "100.00%"], ["test_imgs/9702_horse.png", "马 horse", "100.00%"]];
   samples.forEach(([p, label, conf], i) => {
     const x = M + i * 2.62;
     s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y: 1.94, w: 2.36, h: 3.3, fill: { color: WHITE }, line: { color: PRI_LT, width: 1 }, rectRadius: 0.08, shadow: shadow() });
@@ -502,7 +512,7 @@ function statCard(s, x, y, w, h, num, unit, label, opts = {}) {
             "并每轮另存 last_model.pdparams；启动时打印覆盖警告，避免误把训练好的模型覆盖成半成品。",
     { x: M + 0.28, y: 5.66, w: CW - 0.56, h: 0.86, fontSize: 12.5, color: TEXT, fontFace: FONT, margin: 0, valign: "middle", lineSpacingMultiple: 1.3 });
 
-  source(s, "界面代码 app.py（Streamlit）；异常与修复经验记录于 docs/technical_doc.md 第 6 节（15 条）");
+  source(s, "界面代码 app.py（Streamlit）；异常与修复经验记录于 docs/technical_doc.md 第 6 节（16 条）");
   s.addNotes("界面这页建议现场演示 30 秒：上传一张图，指出 Top-3、置信度柱状图和全类别概率。 " +
              "容错部分挑一条讲：模型缺失时会明确提示『请先运行 python train.py』而不是抛一堆英文堆栈。");
 }
@@ -563,7 +573,7 @@ function statCard(s, x, y, w, h, num, unit, label, opts = {}) {
     { text: "全流程闭环：", options: { bold: true, color: WHITE } },
     { text: "数据自动管理 → 模型搭建 → 训练调优 → 多维评估 → 网页部署 → 三份文档", options: { color: PRI_LT, breakLine: true } },
     { text: "精度达标：", options: { bold: true, color: WHITE } },
-    { text: "测试集 91.75%，宏平均 F1 0.9174，各类表现均衡", options: { color: PRI_LT, breakLine: true } },
+    { text: "测试集 92.07%，宏平均 F1 0.9205，各类表现均衡", options: { color: PRI_LT, breakLine: true } },
     { text: "工程完备：", options: { bold: true, color: WHITE } },
     { text: "42 项自动化测试（含界面端到端）、模块化结构、全链路中文异常提示", options: { color: PRI_LT, breakLine: true } },
     { text: "有分析深度：", options: { bold: true, color: WHITE } },

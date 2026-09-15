@@ -1,8 +1,8 @@
 {
-  "epoch": 30,
-  "val_acc": 0.9256,
-  "val_loss": 0.2545668716706336,
-  "train_acc": 0.9690888888888889,
-  "saved_at": "2026-09-14 17:02:48",
-  "model_path": "D:\\Github\\Python_Schoolwork\\人工智能实践\\image_classification_paddle\\outputs\\best_model.pdparams"
+  "epoch": 47,
+  "val_acc": 0.9288,
+  "val_loss": 0.2863581528618699,
+  "train_acc": 0.9916444444444444,
+  "saved_at": "2026-09-15 20:30:46",
+  "model_path": "D:\\Github\\image_classification_paddle\\outputs\\best_model.pdparams"
 }
