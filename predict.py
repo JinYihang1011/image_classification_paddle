@@ -25,8 +25,8 @@ import paddle.nn.functional as F
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import config  # noqa: E402
 from models.resnet import resnet18  # noqa: E402
-from data.preprocess import build_infer_transform, image_to_tensor  # noqa: E402
-from utils.io_utils import (load_image, load_model, format_topk,  # noqa: E402
+from data.preprocess import image_to_tensor  # noqa: E402
+from utils.io_utils import (load_model, format_topk,  # noqa: E402
                             ensure_rgb_pil, ensure_dynamic_mode)
 from utils.logger import get_logger  # noqa: E402
 
